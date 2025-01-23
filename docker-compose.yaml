@@ -1,0 +1,57 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ny_taxi_postgres
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'NY_Taxi'
+    ports:
+      - '5432:5432'
+    volumes:
+      - vol-taxi-pgdata:/var/lib/postgresql/data
+    networks:
+      - pg-taxi
+    restart: on-failure
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ny_taxi_-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: 'admin@admin.com'
+      PGADMIN_DEFAULT_PASSWORD: 'admin'
+    ports:
+      - '8080:80'  # Port mapping for accessing pgAdmin
+    volumes:
+      - vol-taxi-pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - pg-taxi
+    restart: always
+
+  web:
+    build: .
+    container_name: ny_taxi-app
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
+    volumes:
+      - .:/app
+    networks:
+      - pg-taxi
+    depends_on:
+      - postgres
+    command: python3 ingest_data.py
+    restart: on-failure
+
+volumes:
+  vol-taxi-pgdata:
+  vol-taxi-pgadmin:
+
+networks:
+  pg-taxi:
+    driver: bridge
